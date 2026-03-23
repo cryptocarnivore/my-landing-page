@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Freed — Quit Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── SETUP SCREEN ──────────────────────────────────────────── -->
+  <div id="setup-screen" class="screen hidden">
+    <div class="setup-card">
+      <div class="setup-logo">🔓</div>
+      <h1>Welcome to Freed</h1>
+      <p class="setup-sub">Track your journey to freedom. No accounts. No data sent anywhere.</p>
+
+      <div class="form-group">
+        <label for="quit-date">When did you quit? (or start fresh today)</label>
+        <input type="datetime-local" id="quit-date" />
+      </div>
+
+      <div class="form-group">
+        <label for="monthly-spend">Monthly spend on subscriptions / content ($)</label>
+        <input type="number" id="monthly-spend" placeholder="e.g. 30" min="0" step="1" />
+      </div>
+
+      <div class="form-group">
+        <label for="weekly-hours">Hours per week previously spent</label>
+        <input type="number" id="weekly-hours" placeholder="e.g. 7" min="0" step="0.5" />
+      </div>
+
+      <button class="btn-primary" id="setup-btn">Start My Journey</button>
+    </div>
+  </div>
+
+  <!-- ── MAIN APP ───────────────────────────────────────────────── -->
+  <div id="app-screen" class="screen hidden">
+
+    <!-- Header -->
+    <header>
+      <div class="logo">🔓 Freed</div>
+      <button class="btn-icon" id="settings-btn" title="Settings">⚙️</button>
+    </header>
+
+    <!-- Hero counter -->
+    <section class="hero">
+      <p class="hero-label">Clean for</p>
+      <div class="counter" id="counter">
+        <div class="counter-unit"><span id="c-days">0</span><small>days</small></div>
+        <div class="counter-sep">:</div>
+        <div class="counter-unit"><span id="c-hours">00</span><small>hrs</small></div>
+        <div class="counter-sep">:</div>
+        <div class="counter-unit"><span id="c-mins">00</span><small>min</small></div>
+        <div class="counter-sep">:</div>
+        <div class="counter-unit"><span id="c-secs">00</span><small>sec</small></div>
+      </div>
+
+      <!-- Next milestone progress -->
+      <div class="next-milestone" id="next-milestone-block">
+        <div class="nm-label">Next milestone: <span id="nm-name">—</span></div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="nm-bar"></div>
+        </div>
+        <div class="nm-days"><span id="nm-days-left">—</span> days to go</div>
+      </div>
+    </section>
+
+    <!-- Stats row -->
+    <section class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value" id="money-saved">$0</div>
+        <div class="stat-label">Money saved</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-value" id="hours-saved">0h</div>
+        <div class="stat-label">Hours reclaimed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🏆</div>
+        <div class="stat-value" id="milestones-hit">0</div>
+        <div class="stat-label">Milestones hit</div>
+      </div>
+    </section>
+
+    <!-- Milestones -->
+    <section class="milestones-section">
+      <h2>Your Journey</h2>
+      <div class="milestones-grid" id="milestones-grid"></div>
+    </section>
+
+    <!-- Motivation -->
+    <section class="motivation-section">
+      <blockquote id="quote-text"></blockquote>
+    </section>
+
+    <!-- Reset -->
+    <div class="reset-area">
+      <button class="btn-danger" id="relapse-btn">I relapsed — reset clock</button>
+    </div>
+
+  </div>
+
+  <!-- ── SETTINGS MODAL ─────────────────────────────────────────── -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Settings</h2>
+
+      <div class="form-group">
+        <label for="s-quit-date">Quit date / time</label>
+        <input type="datetime-local" id="s-quit-date" />
+      </div>
+      <div class="form-group">
+        <label for="s-monthly-spend">Monthly spend ($)</label>
+        <input type="number" id="s-monthly-spend" min="0" step="1" />
+      </div>
+      <div class="form-group">
+        <label for="s-weekly-hours">Hours per week</label>
+        <input type="number" id="s-weekly-hours" min="0" step="0.5" />
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-primary" id="save-settings-btn">Save</button>
+        <button class="btn-ghost" id="close-settings-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RELAPSE MODAL ──────────────────────────────────────────── -->
+  <div id="relapse-modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-icon">💙</div>
+      <h2>It happens. You got this.</h2>
+      <p>A relapse doesn't erase your progress — it's part of the process. Reset and keep going.</p>
+      <div class="modal-actions">
+        <button class="btn-danger" id="confirm-relapse-btn">Reset clock now</button>
+        <button class="btn-ghost" id="cancel-relapse-btn">Actually, I'm good</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MILESTONE UNLOCKED TOAST ───────────────────────────────── -->
+  <div id="toast" class="toast hidden">
+    <span id="toast-text"></span>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
