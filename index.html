@@ -60,79 +60,107 @@
     <!-- Header -->
     <header>
       <div class="logo">🔓 Freed</div>
-      <button class="btn-icon" id="settings-btn" title="Settings">⚙️</button>
+      <div class="header-actions">
+        <button class="btn-sos-header" id="sos-btn">🆘 SOS</button>
+        <button class="btn-icon" id="settings-btn" title="Settings">⚙️</button>
+      </div>
     </header>
 
-    <!-- Hero counter -->
-    <section class="hero">
-      <p class="hero-label">Clean for</p>
-      <div class="counter" id="counter">
-        <div class="counter-unit"><span id="c-days">0</span><small>days</small></div>
-        <div class="counter-sep">:</div>
-        <div class="counter-unit"><span id="c-hours">00</span><small>hrs</small></div>
-        <div class="counter-sep">:</div>
-        <div class="counter-unit"><span id="c-mins">00</span><small>min</small></div>
-        <div class="counter-sep">:</div>
-        <div class="counter-unit"><span id="c-secs">00</span><small>sec</small></div>
+    <!-- Tab panels -->
+    <div class="tab-content">
+
+      <!-- HOME -->
+      <div class="tab-panel active" id="tab-home">
+        <section class="hero">
+          <p class="hero-label">Clean for</p>
+          <div class="counter" id="counter">
+            <div class="counter-unit"><span id="c-days">0</span><small>days</small></div>
+            <div class="counter-sep">:</div>
+            <div class="counter-unit"><span id="c-hours">00</span><small>hrs</small></div>
+            <div class="counter-sep">:</div>
+            <div class="counter-unit"><span id="c-mins">00</span><small>min</small></div>
+            <div class="counter-sep">:</div>
+            <div class="counter-unit"><span id="c-secs">00</span><small>sec</small></div>
+          </div>
+          <div class="next-milestone" id="next-milestone-block">
+            <div class="nm-label">Next milestone: <span id="nm-name">—</span></div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="nm-bar"></div>
+            </div>
+            <div class="nm-days"><span id="nm-days-left">—</span> days to go</div>
+          </div>
+        </section>
+
+        <section class="stats-row">
+          <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value" id="money-saved">$0</div>
+            <div class="stat-label">Money saved</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-value" id="hours-saved">0h</div>
+            <div class="stat-label">Hours reclaimed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🏆</div>
+            <div class="stat-value" id="milestones-hit">0</div>
+            <div class="stat-label">Milestones hit</div>
+          </div>
+        </section>
       </div>
 
-      <!-- Next milestone progress -->
-      <div class="next-milestone" id="next-milestone-block">
-        <div class="nm-label">Next milestone: <span id="nm-name">—</span></div>
-        <div class="progress-bar">
-          <div class="progress-fill" id="nm-bar"></div>
+      <!-- JOURNEY -->
+      <div class="tab-panel" id="tab-journey">
+        <section class="milestones-section">
+          <h2>Your Journey</h2>
+          <div class="milestones-grid" id="milestones-grid"></div>
+        </section>
+      </div>
+
+      <!-- RESEARCH -->
+      <div class="tab-panel" id="tab-research">
+        <section class="research-section">
+          <h2>Research Library</h2>
+          <p class="research-sub">Peer-reviewed studies on the benefits of quitting.</p>
+          <div class="research-filters" id="research-filters"></div>
+          <div class="research-grid" id="research-grid"></div>
+        </section>
+      </div>
+
+      <!-- REFLECT -->
+      <div class="tab-panel" id="tab-reflect">
+        <section class="reflect-section">
+          <h2>Reflect</h2>
+          <blockquote id="quote-text"></blockquote>
+          <button class="btn-new-quote" id="new-quote-btn">New quote</button>
+        </section>
+        <div class="reset-area">
+          <button class="btn-danger" id="relapse-btn">I relapsed — reset clock</button>
         </div>
-        <div class="nm-days"><span id="nm-days-left">—</span> days to go</div>
       </div>
-    </section>
 
-    <!-- Stats row -->
-    <section class="stats-row">
-      <div class="stat-card">
-        <div class="stat-icon">💰</div>
-        <div class="stat-value" id="money-saved">$0</div>
-        <div class="stat-label">Money saved</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">⏱️</div>
-        <div class="stat-value" id="hours-saved">0h</div>
-        <div class="stat-label">Hours reclaimed</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🏆</div>
-        <div class="stat-value" id="milestones-hit">0</div>
-        <div class="stat-label">Milestones hit</div>
-      </div>
-    </section>
+    </div><!-- /tab-content -->
 
-    <!-- Milestones -->
-    <section class="milestones-section">
-      <h2>Your Journey</h2>
-      <div class="milestones-grid" id="milestones-grid"></div>
-    </section>
-
-    <!-- Motivation -->
-    <section class="motivation-section">
-      <blockquote id="quote-text"></blockquote>
-    </section>
-
-    <!-- Research Library -->
-    <section class="research-section">
-      <h2>Research Library</h2>
-      <p class="research-sub">Peer-reviewed studies on the benefits of quitting.</p>
-      <div class="research-filters" id="research-filters"></div>
-      <div class="research-grid" id="research-grid"></div>
-    </section>
-
-    <!-- SOS -->
-    <div class="sos-area">
-      <button class="btn-sos" id="sos-btn">🆘 SOS — I need strength right now</button>
-    </div>
-
-    <!-- Reset -->
-    <div class="reset-area">
-      <button class="btn-danger" id="relapse-btn">I relapsed — reset clock</button>
-    </div>
+    <!-- Bottom tab bar -->
+    <nav class="tab-bar">
+      <button class="tab-btn active" data-tab="tab-home">
+        <span class="tab-icon">🏠</span>
+        <span class="tab-label">Home</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-journey">
+        <span class="tab-icon">🏆</span>
+        <span class="tab-label">Journey</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-research">
+        <span class="tab-icon">📚</span>
+        <span class="tab-label">Research</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-reflect">
+        <span class="tab-icon">💬</span>
+        <span class="tab-label">Reflect</span>
+      </button>
+    </nav>
 
   </div>
 
@@ -157,7 +185,6 @@
           <button type="button" class="mindset-opt" data-mindset="stoic">🏛️<span>Stoic</span></button>
         </div>
       </div>
-
       <div class="form-group">
         <label for="s-sessions-per-day">Sessions per day</label>
         <input type="number" id="s-sessions-per-day" min="0" step="1" />
