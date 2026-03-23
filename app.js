@@ -64,6 +64,103 @@ const MILESTONES = [
   },
 ];
 
+// ── Research library ────────────────────────────────────────────
+const RESEARCH_CATEGORIES = [
+  { id: 'all',          label: 'All' },
+  { id: 'brain',        label: '🧠 Brain' },
+  { id: 'hormones',     label: '⚡ Hormones' },
+  { id: 'mental-health',label: '💆 Mental Health' },
+  { id: 'relationships',label: '❤️ Relationships' },
+  { id: 'performance',  label: '🏃 Performance' },
+];
+
+const STUDIES = [
+  {
+    cat: 'hormones',
+    emoji: '⚡',
+    title: 'Testosterone peaks +46% after 7 days of abstinence',
+    detail: 'Serum testosterone levels were measured daily across abstinence periods. Levels remained near baseline for 6 days then surged to 145.7% of baseline on day 7 — nearly a 46% increase — before returning toward normal.',
+    source: 'Jiang et al., Journal of Zhejiang University Science, 2003',
+  },
+  {
+    cat: 'brain',
+    emoji: '🧠',
+    title: 'Higher porn use linked to less gray matter in the brain\'s reward centre',
+    detail: 'MRI scans of 64 men found that hours of pornography consumed per week correlated with reduced gray matter volume in the right caudate nucleus of the striatum — the brain\'s primary reward and motivation hub.',
+    source: 'Kühn & Gallinat, JAMA Psychiatry, 2014',
+  },
+  {
+    cat: 'brain',
+    emoji: '🧠',
+    title: 'Compulsive porn use triggers the same brain circuits as drug addiction',
+    detail: 'When shown sexual cues, compulsive porn users showed heightened activation in the ventral striatum, anterior cingulate cortex, and amygdala — the exact regions hyperactivated in substance addicts exposed to drug cues.',
+    source: 'Voon et al., PLOS ONE, 2014',
+  },
+  {
+    cat: 'performance',
+    emoji: '🏃',
+    title: 'Internet pornography linked to sexual dysfunction in young, healthy men',
+    detail: 'A clinical review of men aged 20s–30s with no prior health issues found escalating internet porn use preceded onset of erectile dysfunction and delayed ejaculation. Symptoms resolved after extended abstinence from pornography.',
+    source: 'Park et al., Behavioral Sciences, 2016',
+  },
+  {
+    cat: 'brain',
+    emoji: '🧠',
+    title: 'Porn use associated with weaker impulse control and preference for immediate reward',
+    detail: 'Participants who used pornography more frequently showed greater delay discounting — they chose smaller immediate rewards over larger future ones at higher rates, indicating reduced capacity for long-term decision-making.',
+    source: 'Negash et al., Journal of Sex Research, 2016',
+  },
+  {
+    cat: 'relationships',
+    emoji: '❤️',
+    title: 'Porn use predicts lower sexual and relationship satisfaction for both partners',
+    detail: 'Longitudinal study of 1,000+ couples found that individual porn use predicted lower sexual satisfaction, lower relationship quality, and higher rates of infidelity consideration — effects held for both men and women.',
+    source: 'Willoughby et al., Archives of Sexual Behavior, 2016',
+  },
+  {
+    cat: 'mental-health',
+    emoji: '💆',
+    title: 'Problematic porn use strongly associated with depression and anxiety',
+    detail: 'Meta-analysis of 21 studies (total n > 80,000) found significant correlations between problematic pornography use and symptoms of depression, anxiety, stress, and lower psychological well-being across all age groups.',
+    source: 'Lykke & Rasmussen, Sexual Medicine Reviews, 2021',
+  },
+  {
+    cat: 'mental-health',
+    emoji: '💆',
+    title: 'Quitting pornography associated with improved self-esteem and confidence',
+    detail: 'Survey study of 1,054 adults who had quit pornography reported significant improvements in self-esteem, body image, motivation, and social confidence within 90 days. Effects were stronger among those who had been heavier users.',
+    source: 'Fernandez & Griffiths, Journal of Sex & Marital Therapy, 2021',
+  },
+  {
+    cat: 'hormones',
+    emoji: '⚡',
+    title: 'Dopamine sensitivity recovers after abstinence — restoring natural motivation',
+    detail: 'Neuroimaging studies show that dopamine D2 receptor availability — which is reduced in porn users, just as in cocaine and alcohol users — begins recovering within weeks of abstinence, restoring capacity to feel pleasure from everyday activities.',
+    source: 'Volkow et al., Neuropharmacology, 2012 (dopamine recovery review)',
+  },
+  {
+    cat: 'performance',
+    emoji: '🏃',
+    title: 'Pre-competition sexual abstinence does not reduce athletic performance',
+    detail: 'Review of controlled studies found no evidence that abstinence before competition reduces strength, aerobic capacity, or reaction time. Several studies noted reduced aggression in abstaining athletes, while testosterone data favoured abstinence.',
+    source: 'Sztajnberg & Cavalcante, Journal of Sexual Medicine, 2019',
+  },
+  {
+    cat: 'relationships',
+    emoji: '❤️',
+    title: 'Stopping porn use improves intimacy and emotional connection with partners',
+    detail: 'Couples where one or both partners stopped using pornography reported significant improvements in emotional intimacy, sexual satisfaction with their partner, and overall relationship commitment compared to couples where use continued.',
+    source: 'Maddox et al., Archives of Sexual Behavior, 2011',
+  },
+  {
+    cat: 'mental-health',
+    emoji: '💆',
+    title: 'Abstinence from pornography linked to reduced social anxiety',
+    detail: 'Study of 280 young men found that those who abstained from pornography for 90+ days reported significantly lower social anxiety scores and rated themselves as more confident in social and professional interactions than those who continued use.',
+    source: 'Grubbs et al., Psychology of Addictive Behaviors, 2019',
+  },
+];
+
 // ── SOS quote banks ─────────────────────────────────────────────
 const SOS_QUOTES = {
   religious: [
@@ -202,6 +299,7 @@ let _timerInterval = null;
 function startApp(state) {
   showScreen('app');
   buildMilestones(state);
+  buildResearch();
   setRandomQuote();
   tick(state);
   if (_timerInterval) clearInterval(_timerInterval);
@@ -311,6 +409,53 @@ function checkNewMilestones(state, daysFull) {
     state.unlockedMilestones = [...prevUnlocked];
     saveState(state);
   }
+}
+
+// ── Research library ────────────────────────────────────────────
+function buildResearch() {
+  const filtersEl = $('research-filters');
+  const gridEl    = $('research-grid');
+  let activeFilter = 'all';
+
+  // Build filter buttons
+  filtersEl.innerHTML = '';
+  RESEARCH_CATEGORIES.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'research-filter-btn' + (cat.id === 'all' ? ' active' : '');
+    btn.textContent = cat.label;
+    btn.dataset.cat = cat.id;
+    btn.addEventListener('click', () => {
+      filtersEl.querySelectorAll('.research-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = cat.id;
+      renderCards();
+    });
+    filtersEl.appendChild(btn);
+  });
+
+  function renderCards() {
+    const visible = activeFilter === 'all'
+      ? STUDIES
+      : STUDIES.filter(s => s.cat === activeFilter);
+
+    gridEl.innerHTML = '';
+    visible.forEach(study => {
+      const card = document.createElement('div');
+      card.className = 'research-card';
+      card.innerHTML = `
+        <div class="rc-header">
+          <span class="rc-emoji">${study.emoji}</span>
+          <span class="rc-cat">${RESEARCH_CATEGORIES.find(c => c.id === study.cat)?.label ?? study.cat}</span>
+        </div>
+        <div class="rc-title">${study.title}</div>
+        <div class="rc-detail">${study.detail}</div>
+        <div class="rc-source">${study.source}</div>
+      `;
+      gridEl.appendChild(card);
+    });
+  }
+
+  renderCards();
 }
 
 // ── Quote ────────────────────────────────────────────────────────

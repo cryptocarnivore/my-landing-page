@@ -399,6 +399,81 @@ blockquote {
   transform: translateX(-50%) translateY(0);
 }
 
+/* ── Research library ────────────────────────────────────────── */
+.research-section { margin-bottom: 36px; }
+.research-section h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+.research-sub { font-size: .82rem; color: var(--text-dim); margin-bottom: 16px; }
+
+.research-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.research-filter-btn {
+  padding: 6px 14px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 99px;
+  color: var(--text-dim);
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .2s, color .2s;
+  white-space: nowrap;
+}
+.research-filter-btn:hover  { border-color: var(--accent); color: var(--text); }
+.research-filter-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,.1); }
+
+.research-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.research-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  transition: border-color .2s;
+}
+.research-card:hover { border-color: var(--accent); }
+.rc-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.rc-emoji { font-size: 1.2rem; }
+.rc-cat {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(79,142,247,.12);
+  padding: 2px 10px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.rc-title {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.rc-detail {
+  font-size: .82rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+.rc-source {
+  font-size: .72rem;
+  color: var(--accent2);
+  font-style: italic;
+}
+
 /* ── Mindset picker ──────────────────────────────────────────── */
 .mindset-picker {
   display: grid;
