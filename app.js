@@ -305,11 +305,28 @@ function toDatetimeLocal(date) {
   return `${y}-${mo}-${d}T${h}:${min}`;
 }
 
+// ── Tab navigation ───────────────────────────────────────────────
+function initTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+}
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById(tabId);
+  if (panel) panel.classList.add('active');
+  const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+  if (btn) btn.classList.add('active');
+}
+
 // ── Main app ────────────────────────────────────────────────────
 let _timerInterval = null;
 
 function startApp(state) {
   showScreen('app');
+  initTabs();
   buildMilestones(state);
   buildResearch();
   setRandomQuote();
@@ -477,6 +494,8 @@ function buildResearch() {
 function setRandomQuote() {
   $('quote-text').textContent = QUOTES[Math.floor(Math.random() * QUOTES.length)];
 }
+
+$('new-quote-btn').addEventListener('click', setRandomQuote);
 
 // ── Toast ────────────────────────────────────────────────────────
 let _toastTimer = null;
