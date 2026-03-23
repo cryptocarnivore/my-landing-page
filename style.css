@@ -468,11 +468,27 @@ blockquote {
   line-height: 1.6;
   margin-bottom: 10px;
 }
+.rc-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .rc-source {
   font-size: .72rem;
   color: var(--accent2);
   font-style: italic;
 }
+.rc-link {
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity .2s;
+}
+.rc-link:hover { opacity: .75; text-decoration: underline; }
 
 /* ── Mindset picker ──────────────────────────────────────────── */
 .mindset-picker {
@@ -506,27 +522,27 @@ blockquote {
 }
 .mindset-opt.active span { color: var(--accent); }
 
-/* ── SOS button ──────────────────────────────────────────────── */
-.sos-area {
-  text-align: center;
-  margin-bottom: 16px;
+/* ── SOS header button ───────────────────────────────────────── */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.btn-sos {
-  width: 100%;
-  padding: 16px;
+.btn-sos-header {
+  padding: 7px 14px;
   background: linear-gradient(135deg, #c0392b, #e74c3c);
   color: #fff;
   border: none;
-  border-radius: var(--radius);
-  font-size: 1.05rem;
+  border-radius: 99px;
+  font-size: .82rem;
   font-weight: 700;
   cursor: pointer;
-  letter-spacing: .01em;
-  box-shadow: 0 4px 20px rgba(231,76,60,.35);
+  box-shadow: 0 2px 10px rgba(231,76,60,.4);
   transition: opacity .2s, transform .15s;
+  white-space: nowrap;
 }
-.btn-sos:hover  { opacity: .9; }
-.btn-sos:active { transform: scale(.98); }
+.btn-sos-header:hover  { opacity: .88; }
+.btn-sos-header:active { transform: scale(.96); }
 
 /* ── SOS modal ───────────────────────────────────────────────── */
 .sos-modal-card { border-color: rgba(231,76,60,.3); }
