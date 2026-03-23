@@ -64,6 +64,48 @@ const MILESTONES = [
   },
 ];
 
+// ── SOS quote banks ─────────────────────────────────────────────
+const SOS_QUOTES = {
+  religious: [
+    { text: "Flee from sexual immorality. Every other sin a person commits is outside the body, but the sexually immoral person sins against his own body.", ref: "1 Corinthians 6:18" },
+    { text: "For God gave us a spirit not of fear but of power and love and self-control.", ref: "2 Timothy 1:7" },
+    { text: "No temptation has overtaken you except what is common to mankind. God is faithful; he will not let you be tempted beyond what you can bear. But when you are tempted, he will also provide a way out.", ref: "1 Corinthians 10:13" },
+    { text: "Create in me a clean heart, O God, and renew a right spirit within me.", ref: "Psalm 51:10" },
+    { text: "I have made a covenant with my eyes; how then could I gaze at a virgin?", ref: "Job 31:1" },
+    { text: "Walk by the Spirit, and you will not gratify the desires of the flesh.", ref: "Galatians 5:16" },
+    { text: "Blessed are the pure in heart, for they shall see God.", ref: "Matthew 5:8" },
+    { text: "Submit yourselves therefore to God. Resist the devil, and he will flee from you.", ref: "James 4:7" },
+    { text: "I can do all things through him who strengthens me.", ref: "Philippians 4:13" },
+    { text: "Put to death therefore what is earthly in you: sexual immorality, impurity, passion, evil desire.", ref: "Colossians 3:5" },
+  ],
+  spiritual: [
+    { text: "You are not your urges. You are the awareness behind them. Watch the wave — don't become it.", ref: "Mindfulness wisdom" },
+    { text: "Between stimulus and response there is a space. In that space is our power to choose.", ref: "Viktor Frankl" },
+    { text: "Feelings come and go like clouds in a windy sky. Conscious breathing is your anchor.", ref: "Thich Nhất Hạnh" },
+    { text: "The present moment is the only place where life exists. Come back to it now. Breathe.", ref: "Eckhart Tolle" },
+    { text: "This urge is not you. It arose. It will pass. You only have to wait.", ref: "Meditation teaching" },
+    { text: "Do not be led by the craving mind. You have the power to pause, to choose differently.", ref: "Buddhist teaching" },
+    { text: "The mind is everything. What you think, you become. Think: I am free.", ref: "Buddhist teaching" },
+    { text: "You have been through hard moments before and emerged stronger. This moment is no different.", ref: "Mindfulness wisdom" },
+    { text: "Every moment of resistance is a seed of freedom planted in your soul.", ref: "Spiritual wisdom" },
+    { text: "In the depth of winter I finally learned that there was in me an invincible summer.", ref: "Albert Camus" },
+  ],
+  stoic: [
+    { text: "You have power over your mind — not outside events. Realize this, and you will find strength.", ref: "Marcus Aurelius" },
+    { text: "The impediment to action advances action. What stands in the way becomes the way.", ref: "Marcus Aurelius" },
+    { text: "No man is free who is not master of himself.", ref: "Epictetus" },
+    { text: "First say to yourself what you would be; then do what you have to do.", ref: "Epictetus" },
+    { text: "Difficulties strengthen the mind, as labour does the body.", ref: "Seneca" },
+    { text: "He suffers more than necessary, who suffers before it is necessary. This urge will pass.", ref: "Seneca" },
+    { text: "Waste no more time arguing about what a good man should be. Be one.", ref: "Marcus Aurelius" },
+    { text: "The happiness of your life depends upon the quality of your thoughts.", ref: "Marcus Aurelius" },
+    { text: "It is not the man who has too little, but the man who craves more, that is poor.", ref: "Seneca" },
+    { text: "He is a wise man who does not grieve for things he has not, but rejoices for those which he has.", ref: "Epictetus" },
+  ],
+};
+
+const SOS_ICONS = { religious: '🙏', spiritual: '✨', stoic: '🏛️' };
+
 const QUOTES = [
   "Every day you choose freedom is a day you take back your power.",
   "The chains of habit are too light to be felt until they are too heavy to be broken. — Warren Buffett",
@@ -103,26 +145,41 @@ function showScreen(name) {
 function showModal(id) { $(id).classList.remove('hidden'); }
 function hideModal(id) { $(id).classList.add('hidden'); }
 
+// ── Mindset picker (shared between setup & settings) ────────────
+function initMindsetPicker(containerSelector, initialValue) {
+  const opts = document.querySelectorAll(containerSelector + ' .mindset-opt');
+  let selected = initialValue || 'stoic';
+
+  opts.forEach(btn => {
+    if (btn.dataset.mindset === selected) btn.classList.add('active');
+    btn.addEventListener('click', () => {
+      opts.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selected = btn.dataset.mindset;
+    });
+  });
+
+  return { getSelected: () => selected };
+}
+
 // ── Setup screen ────────────────────────────────────────────────
 function initSetupScreen() {
-  // Default quit time = now
   const now = new Date();
   now.setSeconds(0, 0);
   $('quit-date').value = toDatetimeLocal(now);
+
+  const mindsetPicker = initMindsetPicker('#setup-screen', 'stoic');
 
   $('setup-btn').addEventListener('click', () => {
     const quitDate = $('quit-date').value;
     if (!quitDate) { alert('Please enter your quit date.'); return; }
 
-    const spend           = parseFloat($('monthly-spend').value)    || 0;
-    const sessionsPerDay  = parseFloat($('sessions-per-day').value) || 0;
-    const minsPerSession  = parseFloat($('mins-per-session').value)  || 0;
-
     const state = {
-      quitTimestamp: new Date(quitDate).getTime(),
-      monthlySpend: spend,
-      sessionsPerDay,
-      minsPerSession,
+      quitTimestamp:  new Date(quitDate).getTime(),
+      monthlySpend:   parseFloat($('monthly-spend').value)    || 0,
+      sessionsPerDay: parseFloat($('sessions-per-day').value) || 0,
+      minsPerSession: parseFloat($('mins-per-session').value)  || 0,
+      mindset:        mindsetPicker.getSelected(),
       unlockedMilestones: [],
     };
     saveState(state);
@@ -275,7 +332,37 @@ function showToast(msg) {
   }, 3500);
 }
 
+// ── SOS modal ────────────────────────────────────────────────────
+let _sosIndex = -1;
+
+$('sos-btn').addEventListener('click', () => {
+  const state = loadState();
+  const mindset = (state && state.mindset) || 'stoic';
+  _sosIndex = Math.floor(Math.random() * SOS_QUOTES[mindset].length);
+  renderSosQuote(mindset);
+  showModal('sos-modal');
+});
+
+$('sos-another-btn').addEventListener('click', () => {
+  const state = loadState();
+  const mindset = (state && state.mindset) || 'stoic';
+  const pool = SOS_QUOTES[mindset];
+  _sosIndex = (_sosIndex + 1) % pool.length;
+  renderSosQuote(mindset);
+});
+
+$('sos-close-btn').addEventListener('click', () => hideModal('sos-modal'));
+
+function renderSosQuote(mindset) {
+  const q = SOS_QUOTES[mindset][_sosIndex];
+  $('sos-icon').textContent  = SOS_ICONS[mindset];
+  $('sos-verse').textContent = q.text;
+  $('sos-ref').textContent   = '— ' + q.ref;
+}
+
 // ── Settings modal ───────────────────────────────────────────────
+let _settingsMindsetPicker = null;
+
 $('settings-btn').addEventListener('click', () => {
   const state = loadState();
   if (!state) return;
@@ -283,6 +370,7 @@ $('settings-btn').addEventListener('click', () => {
   $('s-monthly-spend').value      = state.monthlySpend    || '';
   $('s-sessions-per-day').value   = state.sessionsPerDay  || '';
   $('s-mins-per-session').value   = state.minsPerSession  || '';
+  _settingsMindsetPicker = initMindsetPicker('#settings-modal', state.mindset || 'stoic');
   showModal('settings-modal');
 });
 
@@ -296,9 +384,9 @@ $('save-settings-btn').addEventListener('click', () => {
   state.monthlySpend   = parseFloat($('s-monthly-spend').value)    || 0;
   state.sessionsPerDay = parseFloat($('s-sessions-per-day').value) || 0;
   state.minsPerSession = parseFloat($('s-mins-per-session').value)  || 0;
+  state.mindset        = _settingsMindsetPicker ? _settingsMindsetPicker.getSelected() : (state.mindset || 'stoic');
   saveState(state);
   hideModal('settings-modal');
-  // Rebuild UI
   buildMilestones(state);
   tick(state);
   showToast('Settings saved.');
@@ -316,6 +404,7 @@ $('confirm-relapse-btn').addEventListener('click', () => {
     monthlySpend:   (loadState() || {}).monthlySpend   || 0,
     sessionsPerDay: (loadState() || {}).sessionsPerDay || 0,
     minsPerSession: (loadState() || {}).minsPerSession || 0,
+    mindset:        (loadState() || {}).mindset        || 'stoic',
     unlockedMilestones: [],
   };
   saveState(state);

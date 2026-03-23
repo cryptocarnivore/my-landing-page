@@ -35,6 +35,21 @@
         <input type="number" id="mins-per-session" placeholder="e.g. 30" min="0" step="5" />
       </div>
 
+      <div class="form-group">
+        <label>What grounds you in difficult moments?</label>
+        <div class="mindset-picker">
+          <button type="button" class="mindset-opt" data-mindset="religious">
+            🙏<span>Religious</span><small>Bible verses</small>
+          </button>
+          <button type="button" class="mindset-opt" data-mindset="spiritual">
+            ✨<span>Spiritual</span><small>Mindfulness & wisdom</small>
+          </button>
+          <button type="button" class="mindset-opt" data-mindset="stoic">
+            🏛️<span>Stoic</span><small>Philosophy & reason</small>
+          </button>
+        </div>
+      </div>
+
       <button class="btn-primary" id="setup-btn">Start My Journey</button>
     </div>
   </div>
@@ -101,6 +116,11 @@
       <blockquote id="quote-text"></blockquote>
     </section>
 
+    <!-- SOS -->
+    <div class="sos-area">
+      <button class="btn-sos" id="sos-btn">🆘 SOS — I need strength right now</button>
+    </div>
+
     <!-- Reset -->
     <div class="reset-area">
       <button class="btn-danger" id="relapse-btn">I relapsed — reset clock</button>
@@ -121,6 +141,15 @@
         <label for="s-monthly-spend">Monthly spend ($)</label>
         <input type="number" id="s-monthly-spend" min="0" step="1" />
       </div>
+      <div class="form-group">
+        <label>What grounds you?</label>
+        <div class="mindset-picker">
+          <button type="button" class="mindset-opt" data-mindset="religious">🙏<span>Religious</span></button>
+          <button type="button" class="mindset-opt" data-mindset="spiritual">✨<span>Spiritual</span></button>
+          <button type="button" class="mindset-opt" data-mindset="stoic">🏛️<span>Stoic</span></button>
+        </div>
+      </div>
+
       <div class="form-group">
         <label for="s-sessions-per-day">Sessions per day</label>
         <input type="number" id="s-sessions-per-day" min="0" step="1" />
@@ -146,6 +175,19 @@
       <div class="modal-actions">
         <button class="btn-danger" id="confirm-relapse-btn">Reset clock now</button>
         <button class="btn-ghost" id="cancel-relapse-btn">Actually, I'm good</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SOS MODAL ────────────────────────────────────────────────── -->
+  <div id="sos-modal" class="modal hidden">
+    <div class="modal-card sos-modal-card">
+      <div class="sos-icon" id="sos-icon">🙏</div>
+      <p class="sos-verse" id="sos-verse"></p>
+      <p class="sos-ref" id="sos-ref"></p>
+      <div class="modal-actions">
+        <button class="btn-primary" id="sos-another-btn">Another</button>
+        <button class="btn-ghost" id="sos-close-btn">I'm okay now 💙</button>
       </div>
     </div>
   </div>

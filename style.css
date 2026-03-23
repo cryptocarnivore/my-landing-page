@@ -399,6 +399,81 @@ blockquote {
   transform: translateX(-50%) translateY(0);
 }
 
+/* ── Mindset picker ──────────────────────────────────────────── */
+.mindset-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 4px;
+}
+.mindset-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  font-size: .8rem;
+  cursor: pointer;
+  transition: border-color .2s, color .2s, background .2s;
+  line-height: 1.3;
+}
+.mindset-opt:first-child { font-size: 1.4rem; }
+.mindset-opt span { font-weight: 600; font-size: .82rem; color: var(--text); }
+.mindset-opt small { font-size: .7rem; color: var(--text-dim); }
+.mindset-opt.active {
+  border-color: var(--accent);
+  background: rgba(79,142,247,.1);
+  color: var(--text);
+}
+.mindset-opt.active span { color: var(--accent); }
+
+/* ── SOS button ──────────────────────────────────────────────── */
+.sos-area {
+  text-align: center;
+  margin-bottom: 16px;
+}
+.btn-sos {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #c0392b, #e74c3c);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: .01em;
+  box-shadow: 0 4px 20px rgba(231,76,60,.35);
+  transition: opacity .2s, transform .15s;
+}
+.btn-sos:hover  { opacity: .9; }
+.btn-sos:active { transform: scale(.98); }
+
+/* ── SOS modal ───────────────────────────────────────────────── */
+.sos-modal-card { border-color: rgba(231,76,60,.3); }
+.sos-icon {
+  font-size: 2.8rem;
+  margin-bottom: 16px;
+  display: block;
+}
+.sos-verse {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text);
+  font-style: italic;
+  margin-bottom: 12px;
+}
+.sos-ref {
+  font-size: .8rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 400px) {
   .milestones-grid { grid-template-columns: 1fr; }
