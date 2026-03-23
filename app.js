@@ -114,13 +114,15 @@ function initSetupScreen() {
     const quitDate = $('quit-date').value;
     if (!quitDate) { alert('Please enter your quit date.'); return; }
 
-    const spend  = parseFloat($('monthly-spend').value) || 0;
-    const hours  = parseFloat($('weekly-hours').value)  || 0;
+    const spend           = parseFloat($('monthly-spend').value)    || 0;
+    const sessionsPerDay  = parseFloat($('sessions-per-day').value) || 0;
+    const minsPerSession  = parseFloat($('mins-per-session').value)  || 0;
 
     const state = {
       quitTimestamp: new Date(quitDate).getTime(),
       monthlySpend: spend,
-      weeklyHours: hours,
+      sessionsPerDay,
+      minsPerSession,
       unlockedMilestones: [],
     };
     saveState(state);
@@ -175,8 +177,9 @@ function updateStats(state, totalSeconds) {
   const moneySaved = (state.monthlySpend / 30) * days;
   $('money-saved').textContent = '$' + moneySaved.toFixed(2);
 
-  // Hours reclaimed
-  const hoursReclaimed = (state.weeklyHours / 7) * days;
+  // Hours reclaimed: sessions/day × mins/session → hours/day × days elapsed
+  const hoursPerDay    = (state.sessionsPerDay || 0) * (state.minsPerSession || 0) / 60;
+  const hoursReclaimed = hoursPerDay * days;
   $('hours-saved').textContent = hoursReclaimed.toFixed(1) + 'h';
 
   // Milestones hit
@@ -276,9 +279,10 @@ function showToast(msg) {
 $('settings-btn').addEventListener('click', () => {
   const state = loadState();
   if (!state) return;
-  $('s-quit-date').value       = toDatetimeLocal(new Date(state.quitTimestamp));
-  $('s-monthly-spend').value   = state.monthlySpend || '';
-  $('s-weekly-hours').value    = state.weeklyHours  || '';
+  $('s-quit-date').value          = toDatetimeLocal(new Date(state.quitTimestamp));
+  $('s-monthly-spend').value      = state.monthlySpend    || '';
+  $('s-sessions-per-day').value   = state.sessionsPerDay  || '';
+  $('s-mins-per-session').value   = state.minsPerSession  || '';
   showModal('settings-modal');
 });
 
@@ -288,9 +292,10 @@ $('save-settings-btn').addEventListener('click', () => {
   const state = loadState() || {};
   const qd = $('s-quit-date').value;
   if (!qd) { alert('Please enter a valid date.'); return; }
-  state.quitTimestamp = new Date(qd).getTime();
-  state.monthlySpend  = parseFloat($('s-monthly-spend').value) || 0;
-  state.weeklyHours   = parseFloat($('s-weekly-hours').value)  || 0;
+  state.quitTimestamp  = new Date(qd).getTime();
+  state.monthlySpend   = parseFloat($('s-monthly-spend').value)    || 0;
+  state.sessionsPerDay = parseFloat($('s-sessions-per-day').value) || 0;
+  state.minsPerSession = parseFloat($('s-mins-per-session').value)  || 0;
   saveState(state);
   hideModal('settings-modal');
   // Rebuild UI
@@ -308,8 +313,9 @@ $('confirm-relapse-btn').addEventListener('click', () => {
   now.setSeconds(0, 0);
   const state = {
     quitTimestamp: now.getTime(),
-    monthlySpend: (loadState() || {}).monthlySpend || 0,
-    weeklyHours:  (loadState() || {}).weeklyHours  || 0,
+    monthlySpend:   (loadState() || {}).monthlySpend   || 0,
+    sessionsPerDay: (loadState() || {}).sessionsPerDay || 0,
+    minsPerSession: (loadState() || {}).minsPerSession || 0,
     unlockedMilestones: [],
   };
   saveState(state);
