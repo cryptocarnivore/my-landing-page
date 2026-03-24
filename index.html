@@ -3,228 +3,563 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Freed — Quit Tracker</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Analytics Dashboard</title>
+  <!-- Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --surface2:  #222536;
+      --border:    #2e3148;
+      --accent:    #6c63ff;
+      --accent2:   #00d4b4;
+      --danger:    #ff5c7c;
+      --warn:      #f5a623;
+      --text:      #e8eaf0;
+      --muted:     #7b7f9e;
+      --radius:    12px;
+      --shadow:    0 4px 24px rgba(0,0,0,.4);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Layout ── */
+    #app { max-width: 1280px; margin: 0 auto; padding: 24px 20px 48px; }
+
+    /* ── Top bar ── */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
+    }
+    .topbar-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -.3px; }
+    .topbar-title span { color: var(--accent); }
+    .topbar-meta { color: var(--muted); font-size: .875rem; }
+    .topbar-meta strong { color: var(--text); }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: .7rem; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 12px; margin-top: 32px;
+    }
+
+    /* ── KPI Cards ── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      box-shadow: var(--shadow);
+      transition: transform .15s, box-shadow .15s;
+      cursor: default;
+    }
+    .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,.5); }
+    .kpi-card .kpi-label { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; }
+    .kpi-card .kpi-value { font-size: 2rem; font-weight: 800; line-height: 1; margin-bottom: 8px; }
+    .kpi-card .kpi-delta {
+      font-size: .78rem; font-weight: 600; display: inline-flex;
+      align-items: center; gap: 3px; padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .kpi-card .kpi-delta.up   { background: rgba(0,212,180,.12); color: var(--accent2); }
+    .kpi-card .kpi-delta.down { background: rgba(255,92,124,.12); color: var(--danger); }
+    .kpi-card .kpi-sub { font-size: .75rem; color: var(--muted); margin-top: 6px; }
+
+    /* ── Charts grid ── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 16px;
+    }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      box-shadow: var(--shadow);
+    }
+    .chart-card .chart-title { font-size: .9rem; font-weight: 600; margin-bottom: 16px; color: var(--text); }
+    .chart-card canvas { max-height: 240px; width: 100% !important; }
+
+    /* ── Table ── */
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .table-card .table-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px 14px; border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; gap: 8px;
+    }
+    .table-card .table-title { font-size: .9rem; font-weight: 600; }
+    .table-search {
+      padding: 6px 12px; border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text);
+      font-size: .8rem; outline: none; width: 200px;
+      transition: border-color .15s;
+    }
+    .table-search:focus { border-color: var(--accent); }
+    .table-search::placeholder { color: var(--muted); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--surface2); }
+    th {
+      text-align: left; font-size: .7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .8px; color: var(--muted);
+      padding: 10px 16px; white-space: nowrap; cursor: pointer; user-select: none;
+    }
+    th:hover { color: var(--text); }
+    th .sort-icon { margin-left: 4px; opacity: .5; }
+    th.sorted .sort-icon { opacity: 1; color: var(--accent); }
+    td {
+      padding: 13px 16px; font-size: .85rem;
+      border-top: 1px solid var(--border);
+    }
+    tbody tr { transition: background .1s; }
+    tbody tr:hover { background: var(--surface2); }
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 20px;
+      font-size: .7rem; font-weight: 600; letter-spacing: .3px;
+    }
+    .badge-green  { background: rgba(0,212,180,.15); color: var(--accent2); }
+    .badge-purple { background: rgba(108,99,255,.15); color: var(--accent); }
+    .badge-red    { background: rgba(255,92,124,.15); color: var(--danger); }
+    .badge-yellow { background: rgba(245,166,35,.15); color: var(--warn); }
+    .progress-cell { display: flex; align-items: center; gap: 8px; }
+    .mini-bar { flex: 1; max-width: 80px; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+    .mini-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+    .pct-text { font-size: .8rem; color: var(--muted); min-width: 36px; }
+
+    /* ── Pagination ── */
+    .table-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 22px; border-top: 1px solid var(--border);
+      font-size: .8rem; color: var(--muted); flex-wrap: wrap; gap: 8px;
+    }
+    .pagination { display: flex; gap: 4px; }
+    .page-btn {
+      padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); cursor: pointer; font-size: .8rem;
+      transition: background .1s, color .1s;
+    }
+    .page-btn:hover, .page-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .page-btn:disabled { opacity: .35; cursor: default; }
+  </style>
 </head>
 <body>
+<div id="app"></div>
 
-  <!-- ── SETUP SCREEN ──────────────────────────────────────────── -->
-  <div id="setup-screen" class="screen hidden">
-    <div class="setup-card">
-      <div class="setup-logo">🔓</div>
-      <h1>Welcome to Freed</h1>
-      <p class="setup-sub">Track your journey to freedom. No accounts. No data sent anywhere.</p>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   JSON LAYOUT DEFINITION
+   The entire dashboard is described here as a plain JSON object.
+   JsonRender (below) turns it into live DOM + Chart.js visuals.
+═══════════════════════════════════════════════════════════════ */
+const dashboardLayout = {
+  meta: {
+    title:    "Analytics Dashboard",
+    subtitle: "Freed · Quit Tracker",
+    updated:  "March 24 2026  •  09:41 AM"
+  },
 
-      <div class="form-group">
-        <label for="quit-date">When did you quit? (or start fresh today)</label>
-        <input type="datetime-local" id="quit-date" />
-      </div>
+  sections: [
+    /* ── KPI Cards ─────────────────────────────────────────── */
+    {
+      type:  "cards",
+      label: "Key Metrics",
+      items: [
+        { label: "Total Users",     value: "12,840", delta: "+12%", trend: "up",   sub: "vs. last month",   color: "#6c63ff" },
+        { label: "Active Today",    value: "3,421",  delta: "+8%",  trend: "up",   sub: "unique sessions",  color: "#00d4b4" },
+        { label: "Avg. Days Clean", value: "47",     delta: "+5%",  trend: "up",   sub: "across all users", color: "#f5a623" },
+        { label: "Success Rate",    value: "73%",    delta: "-2%",  trend: "down", sub: "30-day completion", color: "#ff5c7c" }
+      ]
+    },
 
-      <div class="form-group">
-        <label for="monthly-spend">Monthly spend on subscriptions / content ($)</label>
-        <input type="number" id="monthly-spend" placeholder="e.g. 30" min="0" step="1" />
-      </div>
+    /* ── Charts ─────────────────────────────────────────────── */
+    {
+      type:  "charts",
+      label: "Trends",
+      items: [
+        {
+          id:    "chart-dau",
+          title: "Daily Active Users — Last 30 Days",
+          kind:  "line",
+          data: {
+            labels: ["Mar 24","","","","Mar 28","","","","Apr 1","","","","Apr 5","","","","Apr 9","","","","Apr 13","","","","Apr 17","","","","Apr 21","Apr 22"],
+            datasets: [
+              {
+                label: "Active Users",
+                data: [2800,2950,3100,3050,3200,3350,3280,3400,3550,3480,3600,3720,3680,3800,3750,3900,4000,3950,4100,4050,4200,4180,4300,4250,4400,4380,4500,4420,4550,3421],
+                borderColor: "#6c63ff",
+                backgroundColor: "rgba(108,99,255,0.12)",
+                fill: true,
+                tension: 0.4,
+                pointRadius: 2,
+                pointHoverRadius: 5
+              },
+              {
+                label: "New Sign-ups",
+                data: [120,140,155,130,160,175,168,180,190,175,185,200,195,210,205,220,230,215,240,225,245,238,255,242,260,250,270,258,275,180],
+                borderColor: "#00d4b4",
+                backgroundColor: "rgba(0,212,180,0.08)",
+                fill: true,
+                tension: 0.4,
+                pointRadius: 2,
+                pointHoverRadius: 5
+              }
+            ]
+          }
+        },
+        {
+          id:    "chart-mindset",
+          title: "User Mindset Distribution",
+          kind:  "doughnut",
+          data: {
+            labels: ["Stoic","Spiritual","Religious"],
+            datasets: [{
+              data: [38, 35, 27],
+              backgroundColor: ["#6c63ff","#00d4b4","#f5a623"],
+              borderWidth: 0,
+              hoverOffset: 8
+            }]
+          }
+        },
+        {
+          id:    "chart-milestones",
+          title: "Weekly Milestones Reached",
+          kind:  "bar",
+          data: {
+            labels: ["Wk 1","Wk 2","Wk 3","Wk 4","Wk 5","Wk 6","Wk 7","Wk 8"],
+            datasets: [
+              {
+                label: "1-Day",
+                data: [980,1050,1120,1080,1190,1150,1240,1210],
+                backgroundColor: "rgba(108,99,255,.85)",
+                borderRadius: 4
+              },
+              {
+                label: "7-Day",
+                data: [540,580,610,590,640,620,670,650],
+                backgroundColor: "rgba(0,212,180,.85)",
+                borderRadius: 4
+              },
+              {
+                label: "30-Day",
+                data: [210,230,245,225,260,250,275,268],
+                backgroundColor: "rgba(245,166,35,.85)",
+                borderRadius: 4
+              }
+            ]
+          }
+        },
+        {
+          id:    "chart-retention",
+          title: "30-Day Retention Curve",
+          kind:  "line",
+          data: {
+            labels: ["Day 1","Day 3","Day 7","Day 14","Day 21","Day 30"],
+            datasets: [{
+              label: "Retention %",
+              data: [100, 82, 68, 55, 47, 38],
+              borderColor: "#ff5c7c",
+              backgroundColor: "rgba(255,92,124,0.12)",
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 7
+            }]
+          }
+        }
+      ]
+    },
 
-      <div class="form-group">
-        <label for="sessions-per-day">Sessions per day (on average)</label>
-        <input type="number" id="sessions-per-day" placeholder="e.g. 2" min="0" step="1" />
-      </div>
+    /* ── Table ─────────────────────────────────────────────── */
+    {
+      type:       "table",
+      label:      "Milestone Breakdown",
+      title:      "All Milestones",
+      searchable: true,
+      pageSize:   6,
+      columns: [
+        { key: "name",       label: "Milestone",       sortable: true  },
+        { key: "days",       label: "Days Required",   sortable: true  },
+        { key: "reached",    label: "Users Reached",   sortable: true  },
+        { key: "rate",       label: "Completion Rate", sortable: true, type: "progress" },
+        { key: "category",   label: "Category",        sortable: false, type: "badge"    },
+        { key: "status",     label: "Status",          sortable: false, type: "badge"    }
+      ],
+      rows: [
+        { name: "First Hour",       days: 0.04, reached: 12501, rate: 97, category: "starter",  status: "active"    },
+        { name: "First Day",        days: 1,    reached: 11840, rate: 92, category: "starter",  status: "active"    },
+        { name: "Three Days",       days: 3,    reached: 10320, rate: 80, category: "early",    status: "active"    },
+        { name: "One Week",         days: 7,    reached: 8750,  rate: 68, category: "early",    status: "active"    },
+        { name: "Two Weeks",        days: 14,   reached: 7060,  rate: 55, category: "growing",  status: "active"    },
+        { name: "One Month",        days: 30,   reached: 4880,  rate: 38, category: "growing",  status: "active"    },
+        { name: "Three Months",     days: 90,   reached: 2410,  rate: 19, category: "strong",   status: "active"    },
+        { name: "Six Months",       days: 180,  reached: 1280,  rate: 10, category: "strong",   status: "active"    },
+        { name: "One Year",         days: 365,  reached: 512,   rate: 4,  category: "elite",    status: "active"    },
+        { name: "Two Years",        days: 730,  reached: 98,    rate: 1,  category: "elite",    status: "beta"      },
+        { name: "Five Years",       days: 1825, reached: 12,    rate: 0,  category: "elite",    status: "planned"   }
+      ]
+    }
+  ]
+};
 
-      <div class="form-group">
-        <label for="mins-per-session">Minutes per session (on average)</label>
-        <input type="number" id="mins-per-session" placeholder="e.g. 30" min="0" step="5" />
-      </div>
+/* ═══════════════════════════════════════════════════════════════
+   JSON-RENDER  –  Converts JSON layout → live DOM elements
+═══════════════════════════════════════════════════════════════ */
+const JsonRender = (() => {
 
-      <div class="form-group">
-        <label>What grounds you in difficult moments?</label>
-        <div class="mindset-picker">
-          <button type="button" class="mindset-opt" data-mindset="religious">
-            🙏<span>Religious</span><small>Bible verses</small>
-          </button>
-          <button type="button" class="mindset-opt" data-mindset="spiritual">
-            ✨<span>Spiritual</span><small>Mindfulness & wisdom</small>
-          </button>
-          <button type="button" class="mindset-opt" data-mindset="stoic">
-            🏛️<span>Stoic</span><small>Philosophy & reason</small>
-          </button>
-        </div>
-      </div>
+  /* ── helpers ── */
+  const el = (tag, attrs = {}, ...children) => {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'className') node.className = v;
+      else if (k === 'textContent') node.textContent = v;
+      else if (k === 'innerHTML') node.innerHTML = v;
+      else node.setAttribute(k, v);
+    }
+    children.forEach(c => c && node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c));
+    return node;
+  };
 
-      <button class="btn-primary" id="setup-btn">Start My Journey</button>
-    </div>
-  </div>
+  const badgeClass = val => ({
+    starter: 'badge-purple', early: 'badge-purple', growing: 'badge-green',
+    strong:  'badge-green',  elite: 'badge-yellow',
+    active:  'badge-green',  beta:  'badge-yellow', planned: 'badge-red'
+  }[val] || 'badge-purple');
 
-  <!-- ── MAIN APP ───────────────────────────────────────────────── -->
-  <div id="app-screen" class="screen hidden">
+  /* ── renderers for each section type ── */
+  const renderers = {
 
-    <!-- Header -->
-    <header>
-      <div class="logo">🔓 Freed</div>
-      <div class="header-actions">
-        <button class="btn-sos-header" id="sos-btn">🆘 SOS</button>
-        <button class="btn-icon" id="settings-btn" title="Settings">⚙️</button>
-      </div>
-    </header>
+    /* KPI Cards */
+    cards({ items }) {
+      const grid = el('div', { className: 'cards-grid' });
+      items.forEach(({ label, value, delta, trend, sub, color }) => {
+        const card = el('div', { className: 'kpi-card' });
+        const top = el('div', { style: `width:32px;height:4px;border-radius:2px;background:${color};margin-bottom:14px` });
+        const lbl   = el('div', { className: 'kpi-label', textContent: label });
+        const val   = el('div', { className: 'kpi-value', textContent: value, style: `color:${color}` });
+        const badge = el('span', { className: `kpi-delta ${trend}`, innerHTML: `${trend === 'up' ? '▲' : '▼'} ${delta}` });
+        const subEl = el('div',  { className: 'kpi-sub', textContent: sub });
+        card.append(top, lbl, val, badge, subEl);
+        grid.appendChild(card);
+      });
+      return grid;
+    },
 
-    <!-- Tab panels -->
-    <div class="tab-content">
+    /* Chart cards */
+    charts({ items }) {
+      const grid = el('div', { className: 'charts-grid' });
+      items.forEach(cfg => {
+        const card = el('div', { className: 'chart-card' });
+        card.appendChild(el('div', { className: 'chart-title', textContent: cfg.title }));
+        const canvas = el('canvas', { id: cfg.id });
+        card.appendChild(canvas);
+        grid.appendChild(card);
 
-      <!-- HOME -->
-      <div class="tab-panel active" id="tab-home">
-        <section class="hero">
-          <p class="hero-label">Clean for</p>
-          <div class="counter" id="counter">
-            <div class="counter-unit"><span id="c-days">0</span><small>days</small></div>
-            <div class="counter-sep">:</div>
-            <div class="counter-unit"><span id="c-hours">00</span><small>hrs</small></div>
-            <div class="counter-sep">:</div>
-            <div class="counter-unit"><span id="c-mins">00</span><small>min</small></div>
-            <div class="counter-sep">:</div>
-            <div class="counter-unit"><span id="c-secs">00</span><small>sec</small></div>
-          </div>
-          <div class="next-milestone" id="next-milestone-block">
-            <div class="nm-label">Next milestone: <span id="nm-name">—</span></div>
-            <div class="progress-bar">
-              <div class="progress-fill" id="nm-bar"></div>
-            </div>
-            <div class="nm-days"><span id="nm-days-left">—</span> days to go</div>
-          </div>
-        </section>
+        /* Defer Chart.js init until canvas is in DOM */
+        requestAnimationFrame(() => {
+          const isDoughnut = cfg.kind === 'doughnut';
+          new Chart(canvas, {
+            type: cfg.kind,
+            data: cfg.data,
+            options: {
+              responsive: true,
+              animation: { duration: 800 },
+              plugins: {
+                legend: {
+                  labels: { color: '#7b7f9e', font: { size: 11 }, boxWidth: 10 },
+                  position: isDoughnut ? 'right' : 'top'
+                },
+                tooltip: {
+                  backgroundColor: '#222536',
+                  titleColor: '#e8eaf0',
+                  bodyColor: '#7b7f9e',
+                  borderColor: '#2e3148',
+                  borderWidth: 1
+                }
+              },
+              scales: isDoughnut ? {} : {
+                x: { ticks: { color: '#7b7f9e', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.04)' } },
+                y: { ticks: { color: '#7b7f9e', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.06)' } }
+              }
+            }
+          });
+        });
+      });
+      return grid;
+    },
 
-        <section class="stats-row">
-          <div class="stat-card">
-            <div class="stat-icon">💰</div>
-            <div class="stat-value" id="money-saved">$0</div>
-            <div class="stat-label">Money saved</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">⏱️</div>
-            <div class="stat-value" id="hours-saved">0h</div>
-            <div class="stat-label">Hours reclaimed</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">🏆</div>
-            <div class="stat-value" id="milestones-hit">0</div>
-            <div class="stat-label">Milestones hit</div>
-          </div>
-        </section>
+    /* Table with search + sort + pagination */
+    table({ title, columns, rows, searchable, pageSize = 10 }) {
+      let filtered  = [...rows];
+      let sortKey   = null;
+      let sortAsc   = true;
+      let page      = 0;
 
-        <section class="reflect-section">
-          <blockquote id="quote-text"></blockquote>
-          <button class="btn-new-quote" id="new-quote-btn">New quote</button>
-        </section>
+      const wrap   = el('div', { className: 'table-card' });
+      const header = el('div', { className: 'table-header' });
+      header.appendChild(el('div', { className: 'table-title', textContent: title }));
 
-        <div class="reset-area">
-          <button class="btn-danger" id="relapse-btn">I relapsed — reset clock</button>
-        </div>
-      </div>
+      let searchInput = null;
+      if (searchable) {
+        searchInput = el('input', { className: 'table-search', placeholder: 'Search milestones…', type: 'text' });
+        header.appendChild(searchInput);
+      }
 
-      <!-- JOURNEY -->
-      <div class="tab-panel" id="tab-journey">
-        <section class="milestones-section">
-          <h2>Your Journey</h2>
-          <div class="milestones-grid" id="milestones-grid"></div>
-        </section>
-      </div>
+      const tableWrap  = el('div', { className: 'table-wrap' });
+      const table      = el('table');
+      const thead      = el('thead');
+      const trHead     = el('tr');
+      const tbody      = el('tbody');
+      const footer     = el('div', { className: 'table-footer' });
+      const countLabel = el('span');
+      const pagination = el('div', { className: 'pagination' });
 
-      <!-- RESEARCH -->
-      <div class="tab-panel" id="tab-research">
-        <section class="research-section">
-          <h2>Research Library</h2>
-          <p class="research-sub">Peer-reviewed studies on the benefits of quitting.</p>
-          <div class="research-filters" id="research-filters"></div>
-          <div class="research-grid" id="research-grid"></div>
-        </section>
-      </div>
+      footer.append(countLabel, pagination);
+      thead.appendChild(trHead);
+      table.append(thead, tbody);
+      tableWrap.appendChild(table);
+      wrap.append(header, tableWrap, footer);
 
-    </div><!-- /tab-content -->
+      /* Build header */
+      columns.forEach(col => {
+        const th = el('th', { 'data-key': col.key });
+        th.innerHTML = col.label + (col.sortable ? ' <span class="sort-icon">↕</span>' : '');
+        if (col.sortable) {
+          th.style.cursor = 'pointer';
+          th.addEventListener('click', () => {
+            if (sortKey === col.key) sortAsc = !sortAsc;
+            else { sortKey = col.key; sortAsc = true; }
+            page = 0;
+            renderBody();
+          });
+        }
+        trHead.appendChild(th);
+      });
 
-    <!-- Bottom tab bar -->
-    <nav class="tab-bar">
-      <button class="tab-btn active" data-tab="tab-home">
-        <span class="tab-icon">🏠</span>
-        <span class="tab-label">Home</span>
-      </button>
-      <button class="tab-btn" data-tab="tab-journey">
-        <span class="tab-icon">🏆</span>
-        <span class="tab-label">Journey</span>
-      </button>
-      <button class="tab-btn" data-tab="tab-research">
-        <span class="tab-icon">📚</span>
-        <span class="tab-label">Research</span>
-      </button>
-    </nav>
+      /* Render table body */
+      const renderBody = () => {
+        /* Sort */
+        let data = filtered.slice();
+        if (sortKey) {
+          data.sort((a, b) => {
+            const va = a[sortKey], vb = b[sortKey];
+            return sortAsc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+          });
+        }
 
-  </div>
+        /* Paginate */
+        const total = data.length;
+        const pages = Math.max(1, Math.ceil(total / pageSize));
+        page = Math.min(page, pages - 1);
+        const slice = data.slice(page * pageSize, page * pageSize + pageSize);
 
-  <!-- ── SETTINGS MODAL ─────────────────────────────────────────── -->
-  <div id="settings-modal" class="modal hidden">
-    <div class="modal-card">
-      <h2>Settings</h2>
+        /* Clear and refill tbody */
+        tbody.innerHTML = '';
+        slice.forEach(row => {
+          const tr = el('tr');
+          columns.forEach(col => {
+            const td = el('td');
+            const v  = row[col.key];
+            if (col.type === 'progress') {
+              td.innerHTML = `<div class="progress-cell">
+                <div class="mini-bar"><div class="mini-fill" style="width:${v}%"></div></div>
+                <span class="pct-text">${v}%</span>
+              </div>`;
+            } else if (col.type === 'badge') {
+              td.innerHTML = `<span class="badge ${badgeClass(v)}">${v}</span>`;
+            } else {
+              td.textContent = typeof v === 'number' && col.key === 'days'
+                ? (v < 1 ? `${Math.round(v * 24)}h` : `${v}d`) : String(v);
+            }
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
 
-      <div class="form-group">
-        <label for="s-quit-date">Quit date / time</label>
-        <input type="datetime-local" id="s-quit-date" />
-      </div>
-      <div class="form-group">
-        <label for="s-monthly-spend">Monthly spend ($)</label>
-        <input type="number" id="s-monthly-spend" min="0" step="1" />
-      </div>
-      <div class="form-group">
-        <label>What grounds you?</label>
-        <div class="mindset-picker">
-          <button type="button" class="mindset-opt" data-mindset="religious">🙏<span>Religious</span></button>
-          <button type="button" class="mindset-opt" data-mindset="spiritual">✨<span>Spiritual</span></button>
-          <button type="button" class="mindset-opt" data-mindset="stoic">🏛️<span>Stoic</span></button>
-        </div>
-      </div>
-      <div class="form-group">
-        <label for="s-sessions-per-day">Sessions per day</label>
-        <input type="number" id="s-sessions-per-day" min="0" step="1" />
-      </div>
-      <div class="form-group">
-        <label for="s-mins-per-session">Minutes per session</label>
-        <input type="number" id="s-mins-per-session" min="0" step="5" />
-      </div>
+        /* Update sort indicators */
+        trHead.querySelectorAll('th').forEach(th => {
+          th.classList.toggle('sorted', th.dataset.key === sortKey);
+          const icon = th.querySelector('.sort-icon');
+          if (icon && th.dataset.key === sortKey) icon.textContent = sortAsc ? '↑' : '↓';
+          else if (icon) icon.textContent = '↕';
+        });
 
-      <div class="modal-actions">
-        <button class="btn-primary" id="save-settings-btn">Save</button>
-        <button class="btn-ghost" id="close-settings-btn">Cancel</button>
-      </div>
-    </div>
-  </div>
+        /* Update footer */
+        countLabel.textContent = `Showing ${Math.min(page * pageSize + 1, total)}–${Math.min(page * pageSize + pageSize, total)} of ${total}`;
+        pagination.innerHTML = '';
+        for (let i = 0; i < pages; i++) {
+          const btn = el('button', { className: `page-btn${i === page ? ' active' : ''}`, textContent: String(i + 1) });
+          btn.addEventListener('click', () => { page = i; renderBody(); });
+          pagination.appendChild(btn);
+        }
+      };
 
-  <!-- ── RELAPSE MODAL ──────────────────────────────────────────── -->
-  <div id="relapse-modal" class="modal hidden">
-    <div class="modal-card">
-      <div class="modal-icon">💙</div>
-      <h2>It happens. You got this.</h2>
-      <p>A relapse doesn't erase your progress — it's part of the process. Reset and keep going.</p>
-      <div class="modal-actions">
-        <button class="btn-danger" id="confirm-relapse-btn">Reset clock now</button>
-        <button class="btn-ghost" id="cancel-relapse-btn">Actually, I'm good</button>
-      </div>
-    </div>
-  </div>
+      /* Search */
+      if (searchInput) {
+        searchInput.addEventListener('input', () => {
+          const q = searchInput.value.toLowerCase();
+          filtered = rows.filter(r =>
+            columns.some(c => String(r[c.key]).toLowerCase().includes(q))
+          );
+          page = 0;
+          renderBody();
+        });
+      }
 
-  <!-- ── SOS MODAL ────────────────────────────────────────────────── -->
-  <div id="sos-modal" class="modal hidden">
-    <div class="modal-card sos-modal-card">
-      <div class="sos-icon" id="sos-icon">🙏</div>
-      <p class="sos-verse" id="sos-verse"></p>
-      <p class="sos-ref" id="sos-ref"></p>
-      <div class="modal-actions">
-        <button class="btn-primary" id="sos-another-btn">Another</button>
-        <button class="btn-ghost" id="sos-close-btn">I'm okay now 💙</button>
-      </div>
-    </div>
-  </div>
+      renderBody();
+      return wrap;
+    }
+  };
 
-  <!-- ── MILESTONE UNLOCKED TOAST ───────────────────────────────── -->
-  <div id="toast" class="toast hidden">
-    <span id="toast-text"></span>
-  </div>
+  /* ── Public API ── */
+  return {
+    render(layout, mountEl) {
+      mountEl.innerHTML = '';
 
-  <script src="app.js"></script>
+      /* Top bar */
+      const topbar = el('div', { className: 'topbar' });
+      topbar.appendChild(el('div', { className: 'topbar-title',
+        innerHTML: `${layout.meta.subtitle} &nbsp;<span>${layout.meta.title}</span>` }));
+      topbar.appendChild(el('div', { className: 'topbar-meta',
+        innerHTML: `Last updated &nbsp;<strong>${layout.meta.updated}</strong>` }));
+      mountEl.appendChild(topbar);
+
+      /* Sections */
+      layout.sections.forEach(section => {
+        if (section.label) {
+          mountEl.appendChild(el('div', { className: 'section-label', textContent: section.label }));
+        }
+        const renderer = renderers[section.type];
+        if (renderer) mountEl.appendChild(renderer(section));
+      });
+    }
+  };
+})();
+
+/* ── Boot ── */
+document.addEventListener('DOMContentLoaded', () => {
+  JsonRender.render(dashboardLayout, document.getElementById('app'));
+});
+</script>
 </body>
 </html>
