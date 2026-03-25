@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lifestyle Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ─── BASE & RESET ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0d0d;
+      --surface:  #1a1a1a;
+      --surface2: #242424;
+      --border:   #2e2e2e;
+      --accent:   #4f8ef7;
+      --accent2:  #7c3aed;
+      --green:    #22c55e;
+      --red:      #ef4444;
+      --text:     #f0f0f0;
+      --muted:    #888;
+      --radius:   10px;
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+
+    h1, h2, h3 { font-weight: 600; }
+
+    /* ─── LAYOUT ───────────────────────────────────────────────────────── */
+    .app-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .app-header h1 { font-size: 1.2rem; letter-spacing: 0.02em; }
+    .app-header .logo { font-size: 1.4rem; }
+
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 16px 20px 0;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 500;
+      padding: 10px 16px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab-panel { display: none; padding: 20px; max-width: 700px; margin: 0 auto; }
+    .tab-panel.active { display: block; }
+
+    /* ─── CARDS ────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ─── FORMS ────────────────────────────────────────────────────────── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-grid .full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      font-size: 0.95rem;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
+    select option { background: var(--surface2); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 0.92rem;
+      font-weight: 600;
+      padding: 11px 20px;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-danger  { background: transparent; border: 1px solid var(--border); color: var(--red); font-size: 0.8rem; padding: 5px 10px; }
+    .btn-danger:hover { background: rgba(239,68,68,0.1); }
+    .btn-full { width: 100%; }
+
+    /* ─── CHART ────────────────────────────────────────────────────────── */
+    .chart-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .chart-controls label { margin: 0; font-size: 0.85rem; white-space: nowrap; }
+    .chart-controls select { flex: 1; min-width: 160px; }
+
+    .chart-wrap {
+      position: relative;
+      height: 260px;
+    }
+
+    .chart-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 260px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+    }
+
+    /* ─── LOG TABLE ────────────────────────────────────────────────────── */
+    .log-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .log-header h2 { margin: 0; }
+
+    .log-filter { max-width: 200px; }
+
+    .log-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .log-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .log-item-info { flex: 1; min-width: 0; }
+    .log-item-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .log-item-meta { font-size: 0.8rem; color: var(--muted); }
+
+    .log-item-stats {
+      display: flex;
+      gap: 14px;
+      flex-shrink: 0;
+      align-items: center;
+    }
+    .stat-pill {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .stat-pill .val { font-size: 1rem; font-weight: 700; color: var(--accent); }
+    .stat-pill .lbl { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      padding: 30px 0;
+    }
+
+    /* ─── PLACEHOLDER PANELS ───────────────────────────────────────────── */
+    .placeholder-card {
+      border: 1px dashed var(--border);
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 50px 20px;
+      text-align: center;
+    }
+    .placeholder-card .ph-icon { font-size: 2.5rem; opacity: 0.4; }
+    .placeholder-card h3 { font-size: 1rem; }
+    .placeholder-card p  { font-size: 0.85rem; color: var(--muted); max-width: 300px; }
+    .badge-soon {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+
+    /* ─── TOAST ────────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--green);
+      color: #fff;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 10px 22px;
+      border-radius: 30px;
+      z-index: 999;
+      transition: transform 0.3s ease;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ─── RESPONSIVE ───────────────────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .form-grid .full { grid-column: 1; }
+      .log-item-stats { gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── APP HEADER ──────────────────────────────────────────────────────── -->
+<header class="app-header">
+  <span class="logo">🏋️</span>
+  <h1>Lifestyle Tracker</h1>
+</header>
+
+<!-- ─── NAV TABS ────────────────────────────────────────────────────────── -->
+<nav class="nav-tabs" role="tablist">
+  <button class="tab-btn active" onclick="switchTab('workout')"   id="tab-workout">Workouts</button>
+  <button class="tab-btn"        onclick="switchTab('nutrition')" id="tab-nutrition">Nutrition</button>
+  <button class="tab-btn"        onclick="switchTab('body')"      id="tab-body">Body</button>
+  <button class="tab-btn"        onclick="switchTab('sleep')"     id="tab-sleep">Sleep</button>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     // SECTION: Workout Tracking
+     ════════════════════════════════════════════════════════════════════════ -->
+<section class="tab-panel active" id="panel-workout">
+
+  <!-- Add Entry Form -->
+  <div class="card">
+    <h2>Log a Set</h2>
+    <div class="form-grid">
+      <div>
+        <label for="w-date">Date</label>
+        <input type="date" id="w-date" />
+      </div>
+      <div>
+        <label for="w-exercise">Exercise</label>
+        <input type="text" id="w-exercise" placeholder="e.g. Bench Press" autocomplete="off" list="exercise-suggestions" />
+        <datalist id="exercise-suggestions"></datalist>
+      </div>
+      <div>
+        <label for="w-weight">Weight (kg / lbs)</label>
+        <input type="number" id="w-weight" placeholder="e.g. 80" min="0" step="0.5" />
+      </div>
+      <div>
+        <label for="w-reps">Reps</label>
+        <input type="number" id="w-reps" placeholder="e.g. 10" min="1" step="1" />
+      </div>
+      <div class="full">
+        <label for="w-notes">Notes (optional)</label>
+        <input type="text" id="w-notes" placeholder="e.g. paused reps, felt strong" />
+      </div>
+      <div class="full">
+        <button class="btn btn-primary btn-full" onclick="addWorkoutEntry()">+ Add Set</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Chart -->
+  <div class="card">
+    <h2>Weight Progression</h2>
+    <div class="chart-controls">
+      <label for="chart-exercise-select">Exercise:</label>
+      <select id="chart-exercise-select" onchange="renderChart()">
+        <option value="">-- select exercise --</option>
+      </select>
+    </div>
+    <div id="chart-container">
+      <div class="chart-empty" id="chart-empty">No data yet — add some sets above.</div>
+      <div class="chart-wrap" id="chart-wrap" style="display:none;">
+        <canvas id="workout-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Workout Log -->
+  <div class="card">
+    <div class="log-header">
+      <h2>Log</h2>
+      <select class="log-filter" id="log-filter-exercise" onchange="renderLog()">
+        <option value="">All exercises</option>
+      </select>
+    </div>
+    <div class="log-list" id="workout-log"></div>
+  </div>
+
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     // SECTION: Nutrition Tracking (placeholder for later)
+     ════════════════════════════════════════════════════════════════════════ -->
+<section class="tab-panel" id="panel-nutrition">
+  <div class="card placeholder-card">
+    <span class="ph-icon">🥗</span>
+    <h3>Nutrition Tracking</h3>
+    <p>Log meals, macros (protein / carbs / fat), and daily calories.</p>
+    <span class="badge-soon">COMING SOON</span>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     // SECTION: Body Measurements (placeholder for later)
+     ════════════════════════════════════════════════════════════════════════ -->
+<section class="tab-panel" id="panel-body">
+  <div class="card placeholder-card">
+    <span class="ph-icon">📏</span>
+    <h3>Body Measurements</h3>
+    <p>Track weight, body fat %, and measurements like waist, chest, and arms over time.</p>
+    <span class="badge-soon">COMING SOON</span>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     // SECTION: Sleep Tracking (placeholder for later)
+     ════════════════════════════════════════════════════════════════════════ -->
+<section class="tab-panel" id="panel-sleep">
+  <div class="card placeholder-card">
+    <span class="ph-icon">😴</span>
+    <h3>Sleep Tracking</h3>
+    <p>Log bedtime, wake time, duration, and sleep quality scores.</p>
+    <span class="badge-soon">COMING SOON</span>
+  </div>
+</section>
+
+<!-- ─── TOAST NOTIFICATION ───────────────────────────────────────────────── -->
+<div id="toast">Saved!</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════════
+// // SECTION: Workout Tracking — data layer & UI
+// ════════════════════════════════════════════════════════════════════════════
+
+const STORAGE_KEY = 'lifestyle_tracker_v1';
+
+// ── State ──────────────────────────────────────────────────────────────────
+
+let state = {
+  workouts: []   // [{ id, date, exercise, weight, reps, notes }]
+  // Future sections will live alongside here, e.g. nutrition: [], body: [], sleep: []
+};
+
+let workoutChart = null;
+
+// ── Persistence ────────────────────────────────────────────────────────────
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) state = JSON.parse(raw);
+    if (!Array.isArray(state.workouts)) state.workouts = [];
+  } catch (e) {
+    console.warn('Could not load saved data', e);
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.warn('Could not save data', e);
+  }
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function fmtDate(iso) {
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function getExerciseList() {
+  const names = [...new Set(state.workouts.map(w => w.exercise))];
+  return names.sort((a, b) => a.localeCompare(b));
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+
+function showToast(msg = 'Saved!') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ── Add workout entry ──────────────────────────────────────────────────────
+
+function addWorkoutEntry() {
+  const date     = document.getElementById('w-date').value.trim();
+  const exercise = document.getElementById('w-exercise').value.trim();
+  const weight   = parseFloat(document.getElementById('w-weight').value);
+  const reps     = parseInt(document.getElementById('w-reps').value, 10);
+  const notes    = document.getElementById('w-notes').value.trim();
+
+  // Basic validation
+  if (!date)                    return alert('Please pick a date.');
+  if (!exercise)                return alert('Please enter an exercise name.');
+  if (isNaN(weight) || weight < 0) return alert('Please enter a valid weight.');
+  if (isNaN(reps)   || reps < 1)   return alert('Please enter valid reps (≥ 1).');
+
+  const entry = { id: uid(), date, exercise, weight, reps, notes };
+  state.workouts.push(entry);
+  state.workouts.sort((a, b) => a.date.localeCompare(b.date));
+  saveState();
+
+  // Clear inputs (keep date & exercise for quick repeat logging)
+  document.getElementById('w-weight').value = '';
+  document.getElementById('w-reps').value   = '';
+  document.getElementById('w-notes').value  = '';
+
+  refreshWorkoutUI();
+  showToast('Set logged!');
+}
+
+// ── Delete workout entry ───────────────────────────────────────────────────
+
+function deleteEntry(id) {
+  state.workouts = state.workouts.filter(w => w.id !== id);
+  saveState();
+  refreshWorkoutUI();
+  showToast('Entry deleted');
+}
+
+// ── Refresh all workout UI ─────────────────────────────────────────────────
+
+function refreshWorkoutUI() {
+  populateExerciseDropdowns();
+  renderChart();
+  renderLog();
+  updateSuggestions();
+}
+
+// ── Populate exercise selects ──────────────────────────────────────────────
+
+function populateExerciseDropdowns() {
+  const exercises = getExerciseList();
+  const chartSel  = document.getElementById('chart-exercise-select');
+  const logSel    = document.getElementById('log-filter-exercise');
+
+  const chartPrev = chartSel.value;
+  const logPrev   = logSel.value;
+
+  // Chart selector
+  chartSel.innerHTML = '<option value="">-- select exercise --</option>';
+  exercises.forEach(ex => {
+    const o = document.createElement('option');
+    o.value = ex;
+    o.textContent = ex;
+    if (ex === chartPrev) o.selected = true;
+    chartSel.appendChild(o);
+  });
+  // Auto-select last added exercise if nothing selected
+  if (!chartSel.value && exercises.length) {
+    const lastEx = state.workouts[state.workouts.length - 1]?.exercise;
+    if (lastEx) chartSel.value = lastEx;
+  }
+
+  // Log filter
+  logSel.innerHTML = '<option value="">All exercises</option>';
+  exercises.forEach(ex => {
+    const o = document.createElement('option');
+    o.value = ex;
+    o.textContent = ex;
+    if (ex === logPrev) o.selected = true;
+    logSel.appendChild(o);
+  });
+}
+
+// ── Autocomplete suggestions ───────────────────────────────────────────────
+
+function updateSuggestions() {
+  const dl = document.getElementById('exercise-suggestions');
+  dl.innerHTML = '';
+  getExerciseList().forEach(ex => {
+    const opt = document.createElement('option');
+    opt.value = ex;
+    dl.appendChild(opt);
+  });
+}
+
+// ── Render progress chart ──────────────────────────────────────────────────
+
+function renderChart() {
+  const selected = document.getElementById('chart-exercise-select').value;
+  const chartWrap  = document.getElementById('chart-wrap');
+  const chartEmpty = document.getElementById('chart-empty');
+
+  if (!selected) {
+    chartWrap.style.display  = 'none';
+    chartEmpty.style.display = 'flex';
+    if (workoutChart) { workoutChart.destroy(); workoutChart = null; }
+    return;
+  }
+
+  // Filter & sort entries for this exercise
+  const entries = state.workouts
+    .filter(w => w.exercise === selected)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  if (!entries.length) {
+    chartWrap.style.display  = 'none';
+    chartEmpty.style.display = 'flex';
+    chartEmpty.textContent   = 'No entries for this exercise yet.';
+    if (workoutChart) { workoutChart.destroy(); workoutChart = null; }
+    return;
+  }
+
+  chartEmpty.style.display = 'none';
+  chartWrap.style.display  = 'block';
+
+  // Build label-to-max-weight map (one point per date = best set that day)
+  const dayMap = {};
+  entries.forEach(e => {
+    if (!dayMap[e.date] || e.weight > dayMap[e.date]) dayMap[e.date] = e.weight;
+  });
+  const labels  = Object.keys(dayMap).map(fmtDate);
+  const weights = Object.values(dayMap);
+
+  const ctx = document.getElementById('workout-chart').getContext('2d');
+  if (workoutChart) workoutChart.destroy();
+
+  workoutChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: `${selected} — best weight`,
+        data: weights,
+        borderColor: '#4f8ef7',
+        backgroundColor: 'rgba(79,142,247,0.12)',
+        pointBackgroundColor: '#4f8ef7',
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.35
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#f0f0f0', font: { size: 12 } } },
+        tooltip: {
+          backgroundColor: '#1a1a1a',
+          borderColor: '#2e2e2e',
+          borderWidth: 1,
+          titleColor: '#f0f0f0',
+          bodyColor: '#888',
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y} kg/lbs`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#888', font: { size: 11 }, maxTicksLimit: 8 },
+          grid:  { color: 'rgba(255,255,255,0.05)' }
+        },
+        y: {
+          ticks: { color: '#888', font: { size: 11 } },
+          grid:  { color: 'rgba(255,255,255,0.05)' },
+          title: { display: true, text: 'Weight', color: '#888', font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+// ── Render log list ────────────────────────────────────────────────────────
+
+function renderLog() {
+  const filter  = document.getElementById('log-filter-exercise').value;
+  const list    = document.getElementById('workout-log');
+
+  let entries = [...state.workouts].reverse(); // newest first
+  if (filter) entries = entries.filter(w => w.exercise === filter);
+
+  if (!entries.length) {
+    list.innerHTML = '<div class="empty-state">No entries yet. Add your first set above!</div>';
+    return;
+  }
+
+  list.innerHTML = entries.map(w => `
+    <div class="log-item">
+      <div class="log-item-info">
+        <div class="log-item-name">${escHtml(w.exercise)}</div>
+        <div class="log-item-meta">${fmtDate(w.date)}${w.notes ? ' · ' + escHtml(w.notes) : ''}</div>
+      </div>
+      <div class="log-item-stats">
+        <div class="stat-pill">
+          <span class="val">${w.weight}</span>
+          <span class="lbl">kg/lbs</span>
+        </div>
+        <div class="stat-pill">
+          <span class="val">${w.reps}</span>
+          <span class="lbl">reps</span>
+        </div>
+        <button class="btn btn-danger" onclick="deleteEntry('${w.id}')" aria-label="Delete">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── XSS-safe HTML escaping ─────────────────────────────────────────────────
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// // SECTION: Nutrition Tracking (placeholder for later)
+// — Add meal logging, macro (protein/carbs/fat) inputs,
+//   daily calorie totals, and charts here.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════════════
+// // SECTION: Body Measurements (placeholder for later)
+// — Add bodyweight, body fat %, and tape measurements (waist/chest/arms)
+//   with trend charts here.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════════════
+// // SECTION: Sleep Tracking (placeholder for later)
+// — Add bedtime, wake time, duration calculation, quality rating,
+//   and a weekly sleep chart here.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Init ───────────────────────────────────────────────────────────────────
+
+(function init() {
+  loadState();
+  document.getElementById('w-date').value = todayISO();
+  refreshWorkoutUI();
+})();
+</script>
+</body>
+</html>
