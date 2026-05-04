@@ -1,13 +1,24 @@
 //@version=5
-indicator("Market Structure", shorttitle="MS", overlay=true, max_lines_count=500, max_labels_count=500)
+indicator("Market Structure + BOS", shorttitle="MS+BOS", overlay=true,
+          max_lines_count=500, max_labels_count=500, max_bars_back=5000)
 
 // ─── Inputs ───────────────────────────────────────────────────────────────────
-length     = input.int(5,       "Pivot Length",              minval=1,  maxval=50, group="Settings",    tooltip="Bars on each side required to confirm a swing high/low")
-showLabels = input.bool(true,   "Show Labels (HH/HL/LH/LL)",                       group="Settings")
-bullColor  = input.color(#26a69a, "Bullish Color",                                  group="Appearance")
-bearColor  = input.color(#ef5350, "Bearish Color",                                  group="Appearance")
-lineWidth  = input.int(2,       "Line Width",                minval=1,  maxval=4,  group="Appearance")
-lineStyle  = input.string("Solid", "Line Style", options=["Solid","Dashed","Dotted"], group="Appearance")
+length      = input.int(5,   "Pivot Length", minval=1, maxval=50, group="Structure",
+                        tooltip="Bars on each side required to confirm a swing high/low")
+showLabels  = input.bool(true,  "Show HH/HL/LH/LL labels",  group="Structure")
+showDots    = input.bool(true,  "Show pivot dots",          group="Structure",
+                          tooltip="Plot a circle at every confirmed swing — useful for backtesting")
+
+bullColor   = input.color(#26a69a, "Bullish Color",         group="Appearance")
+bearColor   = input.color(#ef5350, "Bearish Color",         group="Appearance")
+lineWidth   = input.int(2,   "Zigzag Line Width", minval=1, maxval=4, group="Appearance")
+lineStyle   = input.string("Solid", "Zigzag Line Style",
+                            options=["Solid","Dashed","Dotted"], group="Appearance")
+
+showBOS     = input.bool(true,  "Show BOS / CHoCH",         group="Break of Structure")
+bosColor    = input.color(#2962ff, "BOS color",             group="Break of Structure")
+chochColor  = input.color(#ff9800, "CHoCH color",           group="Break of Structure")
+breakWidth  = input.int(1,   "Break line width", minval=1, maxval=3, group="Break of Structure")
 
 ls = switch lineStyle
     "Dashed" => line.style_dashed
@@ -15,25 +26,40 @@ ls = switch lineStyle
     =>          line.style_solid
 
 // ─── Pivot Detection ──────────────────────────────────────────────────────────
-// Uses wick highs/lows so structure is based on full price range
 ph = ta.pivothigh(high, length, length)
-pl = ta.pivotlow(low,  length, length)
+pl = ta.pivotlow (low,  length, length)
 
-// ─── Persistent State ─────────────────────────────────────────────────────────
-var float committedHiPrice = na   // most recently finalized swing high
+// Pivot dots — plotted at the actual pivot bar (offset back by `length`)
+plot(showDots ? ph : na, "Swing High", style=plot.style_circles,
+     color=bullColor, linewidth=3, offset=-length)
+plot(showDots ? pl : na, "Swing Low",  style=plot.style_circles,
+     color=bearColor, linewidth=3, offset=-length)
+
+// ─── Persistent State (zigzag) ────────────────────────────────────────────────
+var float committedHiPrice = na
 var int   committedHiBar   = na
-var float committedLoPrice = na   // most recently finalized swing low
+var float committedLoPrice = na
 var int   committedLoBar   = na
 
-var float curPrice  = na          // pivot currently being tracked (may still be updated)
+var float curPrice  = na
 var int   curBar    = na
-var bool  curIsHigh = na          // na = no pivot seen yet
+var bool  curIsHigh = na
 
-var line  activeLine  = na        // line for the in-progress segment
-var label activeLabel = na        // label for the in-progress segment
+var line  activeLine  = na
+var label activeLabel = na
+
+// ─── Persistent State (BOS / CHoCH) ───────────────────────────────────────────
+var float lastConfirmedHi    = na   // most recent pivot high
+var int   lastConfirmedHiBar = na
+var bool  hiBroken           = false
+
+var float lastConfirmedLo    = na   // most recent pivot low
+var int   lastConfirmedLoBar = na
+var bool  loBroken           = false
+
+var int   trend              = 0    // 1 bull, -1 bear, 0 neutral
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-// Compare new pivot to last committed pivot of same type to determine structure
 getCol(isHigh, price) =>
     ref = isHigh ? committedHiPrice : committedLoPrice
     na(ref) or price > ref ? bullColor : bearColor
@@ -56,18 +82,21 @@ if not na(ph)
     pBar   = bar_index - length
     pPrice = ph
 
+    // Track most recent confirmed high for BOS detection
+    lastConfirmedHi    := pPrice
+    lastConfirmedHiBar := pBar
+    hiBroken           := false
+
     if na(curIsHigh) or curIsHigh == false
-        // Direction change: commit the low we were tracking
         if curIsHigh == false
             committedLoPrice := curPrice
             committedLoBar   := curBar
 
-        // Draw segment from last committed low → this new high
         if not na(committedLoBar)
-            col         = getCol(true, pPrice)
-            lbl         = getLbl(true, pPrice)
-            activeLine := line.new(committedLoBar, committedLoPrice, pBar, pPrice,
-                                   xloc=xloc.bar_index, color=col, width=lineWidth, style=ls)
+            col          = getCol(true, pPrice)
+            lbl          = getLbl(true, pPrice)
+            activeLine  := line.new(committedLoBar, committedLoPrice, pBar, pPrice,
+                                    xloc=xloc.bar_index, color=col, width=lineWidth, style=ls)
             activeLabel := showLabels ? mkLabel(pBar, pPrice, lbl, true, col) : na
 
         curPrice  := pPrice
@@ -75,13 +104,12 @@ if not na(ph)
         curIsHigh := true
 
     else if pPrice >= curPrice
-        // Still going up — extend the active segment to the higher high
         col = getCol(true, pPrice)
         lbl = getLbl(true, pPrice)
 
         if not na(activeLine)
-            line.set_x2(activeLine,    pBar)
-            line.set_y2(activeLine,    pPrice)
+            line.set_x2(activeLine, pBar)
+            line.set_y2(activeLine, pPrice)
             line.set_color(activeLine, col)
 
         label.delete(activeLabel)
@@ -95,18 +123,20 @@ if not na(pl)
     pBar   = bar_index - length
     pPrice = pl
 
+    lastConfirmedLo    := pPrice
+    lastConfirmedLoBar := pBar
+    loBroken           := false
+
     if na(curIsHigh) or curIsHigh == true
-        // Direction change: commit the high we were tracking
         if curIsHigh == true
             committedHiPrice := curPrice
             committedHiBar   := curBar
 
-        // Draw segment from last committed high → this new low
         if not na(committedHiBar)
-            col         = getCol(false, pPrice)
-            lbl         = getLbl(false, pPrice)
-            activeLine := line.new(committedHiBar, committedHiPrice, pBar, pPrice,
-                                   xloc=xloc.bar_index, color=col, width=lineWidth, style=ls)
+            col          = getCol(false, pPrice)
+            lbl          = getLbl(false, pPrice)
+            activeLine  := line.new(committedHiBar, committedHiPrice, pBar, pPrice,
+                                    xloc=xloc.bar_index, color=col, width=lineWidth, style=ls)
             activeLabel := showLabels ? mkLabel(pBar, pPrice, lbl, false, col) : na
 
         curPrice  := pPrice
@@ -114,13 +144,12 @@ if not na(pl)
         curIsHigh := false
 
     else if pPrice <= curPrice
-        // Still going down — extend the active segment to the lower low
         col = getCol(false, pPrice)
         lbl = getLbl(false, pPrice)
 
         if not na(activeLine)
-            line.set_x2(activeLine,    pBar)
-            line.set_y2(activeLine,    pPrice)
+            line.set_x2(activeLine, pBar)
+            line.set_y2(activeLine, pPrice)
             line.set_color(activeLine, col)
 
         label.delete(activeLabel)
@@ -128,3 +157,38 @@ if not na(pl)
 
         curPrice := pPrice
         curBar   := pBar
+
+// ─── BOS / CHoCH Detection ────────────────────────────────────────────────────
+// Bullish break: close above last confirmed swing high
+if showBOS and not hiBroken and not na(lastConfirmedHi) and close > lastConfirmedHi
+    isCHoCH = trend == -1
+    col     = isCHoCH ? chochColor : bosColor
+    txt     = isCHoCH ? "CHoCH" : "BOS"
+
+    line.new(lastConfirmedHiBar, lastConfirmedHi, bar_index, lastConfirmedHi,
+             xloc=xloc.bar_index, color=col, width=breakWidth, style=line.style_dashed)
+    label.new(bar_index, lastConfirmedHi, txt,
+              xloc=xloc.bar_index, style=label.style_label_left,
+              color=col, textcolor=color.white, size=size.tiny)
+
+    hiBroken := true
+    trend    := 1
+
+// Bearish break: close below last confirmed swing low
+if showBOS and not loBroken and not na(lastConfirmedLo) and close < lastConfirmedLo
+    isCHoCH = trend == 1
+    col     = isCHoCH ? chochColor : bosColor
+    txt     = isCHoCH ? "CHoCH" : "BOS"
+
+    line.new(lastConfirmedLoBar, lastConfirmedLo, bar_index, lastConfirmedLo,
+             xloc=xloc.bar_index, color=col, width=breakWidth, style=line.style_dashed)
+    label.new(bar_index, lastConfirmedLo, txt,
+              xloc=xloc.bar_index, style=label.style_label_left,
+              color=col, textcolor=color.white, size=size.tiny)
+
+    loBroken := true
+    trend    := -1
+
+// ─── Alerts ───────────────────────────────────────────────────────────────────
+alertcondition(not hiBroken[1] and hiBroken,         "Bullish Break (BOS/CHoCH)", "Bullish structure break")
+alertcondition(not loBroken[1] and loBroken,         "Bearish Break (BOS/CHoCH)", "Bearish structure break")
