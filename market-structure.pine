@@ -1,0 +1,130 @@
+//@version=5
+indicator("Market Structure", shorttitle="MS", overlay=true, max_lines_count=500, max_labels_count=500)
+
+// ─── Inputs ───────────────────────────────────────────────────────────────────
+length     = input.int(5,       "Pivot Length",              minval=1,  maxval=50, group="Settings",    tooltip="Bars on each side required to confirm a swing high/low")
+showLabels = input.bool(true,   "Show Labels (HH/HL/LH/LL)",                       group="Settings")
+bullColor  = input.color(#26a69a, "Bullish Color",                                  group="Appearance")
+bearColor  = input.color(#ef5350, "Bearish Color",                                  group="Appearance")
+lineWidth  = input.int(2,       "Line Width",                minval=1,  maxval=4,  group="Appearance")
+lineStyle  = input.string("Solid", "Line Style", options=["Solid","Dashed","Dotted"], group="Appearance")
+
+ls = switch lineStyle
+    "Dashed" => line.style_dashed
+    "Dotted" => line.style_dotted
+    =>          line.style_solid
+
+// ─── Pivot Detection ──────────────────────────────────────────────────────────
+// Uses wick highs/lows so structure is based on full price range
+ph = ta.pivothigh(high, length, length)
+pl = ta.pivotlow(low,  length, length)
+
+// ─── Persistent State ─────────────────────────────────────────────────────────
+var float committedHiPrice = na   // most recently finalized swing high
+var int   committedHiBar   = na
+var float committedLoPrice = na   // most recently finalized swing low
+var int   committedLoBar   = na
+
+var float curPrice  = na          // pivot currently being tracked (may still be updated)
+var int   curBar    = na
+var bool  curIsHigh = na          // na = no pivot seen yet
+
+var line  activeLine  = na        // line for the in-progress segment
+var label activeLabel = na        // label for the in-progress segment
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+// Compare new pivot to last committed pivot of same type to determine structure
+getCol(isHigh, price) =>
+    ref = isHigh ? committedHiPrice : committedLoPrice
+    na(ref) or price > ref ? bullColor : bearColor
+
+getLbl(isHigh, price) =>
+    ref = isHigh ? committedHiPrice : committedLoPrice
+    if isHigh
+        na(ref) or price > ref ? "HH" : "LH"
+    else
+        na(ref) or price > ref ? "HL" : "LL"
+
+mkLabel(x, y, txt, isHigh, col) =>
+    label.new(x, y, txt,
+              xloc  = xloc.bar_index,
+              style = isHigh ? label.style_label_down : label.style_label_up,
+              color = col, textcolor = color.white, size = size.tiny)
+
+// ─── Process Swing High ───────────────────────────────────────────────────────
+if not na(ph)
+    pBar   = bar_index - length
+    pPrice = ph
+
+    if na(curIsHigh) or curIsHigh == false
+        // Direction change: commit the low we were tracking
+        if curIsHigh == false
+            committedLoPrice := curPrice
+            committedLoBar   := curBar
+
+        // Draw segment from last committed low → this new high
+        if not na(committedLoBar)
+            col         = getCol(true, pPrice)
+            lbl         = getLbl(true, pPrice)
+            activeLine := line.new(committedLoBar, committedLoPrice, pBar, pPrice,
+                                   xloc=xloc.bar_index, color=col, width=lineWidth, style=ls)
+            activeLabel := showLabels ? mkLabel(pBar, pPrice, lbl, true, col) : na
+
+        curPrice  := pPrice
+        curBar    := pBar
+        curIsHigh := true
+
+    else if pPrice >= curPrice
+        // Still going up — extend the active segment to the higher high
+        col = getCol(true, pPrice)
+        lbl = getLbl(true, pPrice)
+
+        if not na(activeLine)
+            line.set_x2(activeLine,    pBar)
+            line.set_y2(activeLine,    pPrice)
+            line.set_color(activeLine, col)
+
+        label.delete(activeLabel)
+        activeLabel := showLabels ? mkLabel(pBar, pPrice, lbl, true, col) : na
+
+        curPrice := pPrice
+        curBar   := pBar
+
+// ─── Process Swing Low ────────────────────────────────────────────────────────
+if not na(pl)
+    pBar   = bar_index - length
+    pPrice = pl
+
+    if na(curIsHigh) or curIsHigh == true
+        // Direction change: commit the high we were tracking
+        if curIsHigh == true
+            committedHiPrice := curPrice
+            committedHiBar   := curBar
+
+        // Draw segment from last committed high → this new low
+        if not na(committedHiBar)
+            col         = getCol(false, pPrice)
+            lbl         = getLbl(false, pPrice)
+            activeLine := line.new(committedHiBar, committedHiPrice, pBar, pPrice,
+                                   xloc=xloc.bar_index, color=col, width=lineWidth, style=ls)
+            activeLabel := showLabels ? mkLabel(pBar, pPrice, lbl, false, col) : na
+
+        curPrice  := pPrice
+        curBar    := pBar
+        curIsHigh := false
+
+    else if pPrice <= curPrice
+        // Still going down — extend the active segment to the lower low
+        col = getCol(false, pPrice)
+        lbl = getLbl(false, pPrice)
+
+        if not na(activeLine)
+            line.set_x2(activeLine,    pBar)
+            line.set_y2(activeLine,    pPrice)
+            line.set_color(activeLine, col)
+
+        label.delete(activeLabel)
+        activeLabel := showLabels ? mkLabel(pBar, pPrice, lbl, false, col) : na
+
+        curPrice := pPrice
+        curBar   := pBar
